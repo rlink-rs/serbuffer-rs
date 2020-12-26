@@ -1,0 +1,18 @@
+[package]
+name = "serbuffer"
+version = "0.1.0"
+authors = ["yorkart <wangyue11.4@163.com>>"]
+edition = "2018"
+description = "Memory Efficient Serialization Library"
+keywords = ["serialization", "zero-copy"]
+repository = "https://github.com/rlink-rs/serbuffer-rs.git"
+license = "MIT/Apache-2.0"
+
+[lib]
+name = "serbuffer"
+
+[dependencies]
+bytes = "0.5"
+
+[dev-dependencies]
+uuid = { version = "0.8", features = ["serde", "v4"] }
