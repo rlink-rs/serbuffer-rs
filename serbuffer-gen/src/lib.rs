@@ -91,7 +91,7 @@ impl Codegen {
     }
 
     fn build_use(&self) -> String {
-        "use rlink_buffer::{types, BufferReader, BufferWriter, Buffer};\n".to_string()
+        "use serbuffer::{types, BufferReader, BufferWriter, Buffer};\n".to_string()
     }
 
     fn build_data_type(&self) -> String {
