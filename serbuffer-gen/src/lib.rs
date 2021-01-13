@@ -52,6 +52,7 @@ impl Codegen {
 
     pub(crate) fn build_script(&self) -> String {
         let use_script = self.build_use();
+        let field_indies = self.build_field_index();
         let data_type = self.build_data_type();
         let field_reader = self.build_field_reader();
         let field_writer = self.build_field_writer();
@@ -80,9 +81,11 @@ impl Codegen {
 {}
 {}
 {}
+{}
 "#,
             self.schema,
             use_script.trim_end(),
+            field_indies.trim_end(),
             data_type.trim_end(),
             field_reader.trim_end(),
             field_writer.trim_end(),
@@ -92,6 +95,21 @@ impl Codegen {
 
     fn build_use(&self) -> String {
         "use serbuffer::{types, BufferReader, BufferWriter, Buffer};\n".to_string()
+    }
+
+    fn build_field_index(&self) -> String {
+        let mut indies = Vec::new();
+        for index in 0..self.fields.len() {
+            let field_index = format!("    pub const {}: usize = {};", &self.fields[index].name, index);
+            indies.push(field_index);
+        }
+
+        format!(r#"
+pub mod index {{
+{}
+}}
+        "#,
+        indies.join("\n"))
     }
 
     fn build_data_type(&self) -> String {
@@ -418,7 +436,7 @@ mod tests {
 
     #[test]
     pub fn code_gen_test() {
-        let script = Codegen::new("", "ApmDemo")
+        let script = Codegen::new("", "DemoSchema")
             .field("timestamp", DataType::U64)
             .field("application_name", DataType::STRING)
             .field("agent_id", DataType::STRING)
