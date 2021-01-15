@@ -130,7 +130,7 @@ pub mod index {{
 
         let script = format!(
             r#"
-pub const DATA_TYPE: [u8; {}] = [
+pub const FIELD_TYPE: [u8; {}] = [
 {}
 ];"#,
             self.fields.len(),
