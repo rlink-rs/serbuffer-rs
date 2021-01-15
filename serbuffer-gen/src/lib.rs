@@ -182,7 +182,7 @@ pub struct FieldReader<'a> {{
 
 impl<'a> FieldReader<'a> {{
     pub fn new(b: &'a mut Buffer) -> Self {{
-        let reader = b.as_reader(&DATA_TYPE);
+        let reader = b.as_reader(&FIELD_TYPE);
         FieldReader {{ reader }}
     }}
 {}
@@ -255,7 +255,7 @@ pub struct FieldWriter<'a> {{
 
 impl<'a> FieldWriter<'a> {{
     pub fn new(b: &'a mut Buffer) -> Self {{
-        let writer = b.as_writer(&DATA_TYPE);
+        let writer = b.as_writer(&FIELD_TYPE);
         FieldWriter {{
             writer,
             writer_pos: 0,
@@ -321,7 +321,7 @@ pub struct Entity {{
 
 impl Entity {{
     pub fn to_buffer(&self, b: &mut Buffer) -> Result<(), std::io::Error> {{
-        let mut writer = b.as_writer(&DATA_TYPE);
+        let mut writer = b.as_writer(&FIELD_TYPE);
         
         {}
 
@@ -329,7 +329,7 @@ impl Entity {{
     }}
     
     pub fn parse(b: &mut Buffer) -> Result<Self, std::io::Error> {{
-        let mut reader = b.as_reader(&DATA_TYPE);
+        let mut reader = b.as_reader(&FIELD_TYPE);
 
         let entity = Entity {{
             {}
