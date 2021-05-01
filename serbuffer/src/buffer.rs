@@ -1,6 +1,6 @@
 //! https://github.com/capnproto/capnproto-rust/blob/master/capnp/src/lib.rs
 
-use bytes::{Buf, BufMut, BytesMut};
+use bytes::{ BufMut, BytesMut};
 use std::hash::Hasher;
 use std::io::ErrorKind;
 
@@ -81,7 +81,7 @@ impl Buffer {
     }
 
     pub fn as_slice(&self) -> &[u8] {
-        self.buf.bytes()
+        self.buf.as_ref()
     }
 
     pub fn extend(&mut self, other: &Buffer) -> Result<(), std::io::Error> {
@@ -586,7 +586,6 @@ impl<'a, 'b> BufferWriter<'a, 'b> {
 #[cfg(test)]
 mod tests {
     use crate::{types, Buffer};
-    use bytes::Buf;
 
     #[test]
     pub fn buffer_test() {
@@ -646,7 +645,7 @@ mod tests {
 
             writer.set_i32((5 + i) as i32).unwrap();
 
-            println!("{:?}", buffer.buf.bytes());
+            println!("{:?}", buffer.buf.as_ref());
 
             let mut reader = buffer.as_reader(&data_types);
 
@@ -728,11 +727,11 @@ mod tests {
             writer.set_u32((5) as u32).unwrap();
         }
 
-        println!("{:?}", buffer0.buf.bytes());
-        println!("{:?}", buffer1.buf.bytes());
+        println!("{:?}", buffer0.buf.as_ref());
+        println!("{:?}", buffer1.buf.as_ref());
 
         buffer0.extend(&buffer1).unwrap();
-        println!("{:?}", buffer0.buf.bytes());
+        println!("{:?}", buffer0.buf.as_ref());
 
         let mut data_type_merge = data_types0.to_vec();
         data_type_merge.extend_from_slice(&data_types1);

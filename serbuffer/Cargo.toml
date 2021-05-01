@@ -1,6 +1,6 @@
 [package]
 name = "serbuffer"
-version = "1.0.0"
+version = "1.1.1"
 authors = ["yorkart <wangyue11.4@163.com>>"]
 edition = "2018"
 description = "Memory Efficient Serialization Library"
@@ -12,7 +12,7 @@ license = "MIT/Apache-2.0"
 name = "serbuffer"
 
 [dependencies]
-bytes = "0.5"
+bytes = "1.0"
 
 [dev-dependencies]
 uuid = { version = "0.8", features = ["serde", "v4"] }
