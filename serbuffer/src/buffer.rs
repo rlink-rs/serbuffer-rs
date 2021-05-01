@@ -337,10 +337,11 @@ impl<'a, 'b> BufferReader<'a, 'b> {
         Ok(s)
     }
 
-    pub fn get_str(&mut self, index: usize) -> Result<String, std::io::Error> {
+    pub fn get_str(&mut self, index: usize) -> Result<&str, std::io::Error> {
         match self.get_bytes(index) {
-            Ok(bytes) => String::from_utf8(bytes.to_vec())
-                .map_err(|_e| std::io::Error::from(ErrorKind::InvalidData)),
+            Ok(bytes) => {
+                std::str::from_utf8(bytes).map_err(|_e|std::io::Error::from(ErrorKind::InvalidData))
+            },
             Err(e) => Err(e),
         }
     }
