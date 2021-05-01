@@ -155,7 +155,7 @@ pub const FIELD_TYPE: [u8; {}] = [
                 ),
                 DataType::STRING => format!(
                     r#"
-    pub fn get_{}(&mut self) -> Result<String, std::io::Error> {{
+    pub fn get_{}(&mut self) -> Result<&str, std::io::Error> {{
         self.reader.get_str({})
     }}
 "#,
@@ -268,6 +268,7 @@ impl<'a> FieldWriter<'a> {{
     }
 
     fn build_entity(&self) -> String {
+        let mut ref_type = false;
         let mut fields = "".to_string();
         let mut writers = "".to_string();
         let mut readers = "".to_string();
@@ -277,18 +278,20 @@ impl<'a> FieldWriter<'a> {{
 
             match field.data_type {
                 DataType::BYTES => {
-                    fields = format!("{}\n    pub {}: Vec<u8>,", fields, field.name);
+                    ref_type = true;
+                    fields = format!("{}\n    pub {}: &'a [u8],", fields, field.name);
                     writers = format!(
-                        "{}\n        writer.set_bytes(self.{}.as_slice())?;",
+                        "{}\n        writer.set_bytes(self.{})?;",
                         writers, field.name
                     );
                     readers = format!(
-                        "{}\n            {}: reader.get_bytes({})?.to_vec(),",
+                        "{}\n            {}: reader.get_bytes({})?,",
                         readers, field.name, index
                     );
                 }
                 DataType::STRING => {
-                    fields = format!("{}\n    pub {}: String,", fields, field.name);
+                    ref_type = true;
+                    fields = format!("{}\n    pub {}: &'a str,", fields, field.name);
                     writers = format!(
                         "{}\n        writer.set_str(self.{}.as_str())?;",
                         writers, field.name
@@ -312,10 +315,16 @@ impl<'a> FieldWriter<'a> {{
             };
         }
 
+        let ref_type = if ref_type {
+            "<'a>"
+        } else {
+            ""
+        };
+
         format!(
             r#"
 #[derive(Clone, Debug)]
-pub struct Entity {{
+pub struct Entity{} {{
     {}
 }}
 
@@ -339,6 +348,7 @@ impl Entity {{
     }}
 }}
             "#,
+            ref_type,
             fields.trim_start(),
             writers.trim_start(),
             readers.trim_start()
@@ -435,7 +445,20 @@ mod tests {
     use crate::{Codegen, DataType};
 
     #[test]
-    pub fn code_gen_test() {
+    pub fn code_gen_basic_type_test() {
+        let script = Codegen::new("", "DemoSchema")
+            .field("timestamp", DataType::U64)
+            .field("a", DataType::BOOL)
+            .field("a1", DataType::U8)
+            .build_script();
+
+        println!("-- Start ---");
+        println!("{}", script);
+        println!("-- End ---");
+    }
+
+    #[test]
+    pub fn code_gen_ref_type_test() {
         let script = Codegen::new("", "DemoSchema")
             .field("timestamp", DataType::U64)
             .field("application_name", DataType::STRING)

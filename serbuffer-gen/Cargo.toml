@@ -1,6 +1,6 @@
 [package]
 name = "serbuffer-gen"
-version = "1.0.1"
+version = "1.2.0"
 authors = ["yorkart <wangyue11.4@163.com>>"]
 edition = "2018"
 description = "Memory Efficient Serialization Library"
