@@ -293,7 +293,7 @@ impl<'a> FieldWriter<'a> {{
                     ref_type = true;
                     fields = format!("{}\n    pub {}: &'a str,", fields, field.name);
                     writers = format!(
-                        "{}\n        writer.set_str(self.{}.as_str())?;",
+                        "{}\n        writer.set_str(self.{})?;",
                         writers, field.name
                     );
                     readers = format!(
@@ -328,7 +328,7 @@ pub struct Entity{} {{
     {}
 }}
 
-impl Entity {{
+impl{} Entity{} {{
     pub fn to_buffer(&self, b: &mut Buffer) -> Result<(), std::io::Error> {{
         let mut writer = b.as_writer(&FIELD_TYPE);
         
@@ -337,8 +337,8 @@ impl Entity {{
         Ok(())
     }}
     
-    pub fn parse(b: &mut Buffer) -> Result<Self, std::io::Error> {{
-        let mut reader = b.as_reader(&FIELD_TYPE);
+    pub fn parse(b: &'a mut Buffer) -> Result<Self, std::io::Error> {{
+        let reader = b.as_reader(&FIELD_TYPE);
 
         let entity = Entity {{
             {}
@@ -350,6 +350,8 @@ impl Entity {{
             "#,
             ref_type,
             fields.trim_start(),
+            ref_type,
+            ref_type,
             writers.trim_start(),
             readers.trim_start()
         )

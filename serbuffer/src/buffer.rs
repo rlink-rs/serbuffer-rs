@@ -98,6 +98,13 @@ impl Buffer {
 
         BufferReader::new(self, data_types)
     }
+
+    pub fn as_reader_mut<'a, 'b>(&'a mut self, data_types: &'b [u8]) -> BufferMutReader<'a, 'b> {
+        self.position_index_cache_check(data_types);
+
+        BufferMutReader::new(self, data_types)
+    }
+
     pub fn as_writer<'a, 'b>(&'a mut self, data_types: &'b [u8]) -> BufferWriter<'a, 'b> {
         self.position_index_cache_check(data_types);
 
@@ -152,13 +159,78 @@ impl std::hash::Hash for Buffer {
     }
 }
 
-pub struct BufferReader<'a, 'b> {
+pub struct BufferMutReader<'a, 'b> {
     raw_buffer: &'a mut Buffer,
     data_types: &'b [u8],
 }
 
-impl<'a, 'b> BufferReader<'a, 'b> {
+impl<'a, 'b> BufferMutReader<'a, 'b> {
     fn new(raw_buffer: &'a mut Buffer, data_types: &'b [u8]) -> Self {
+        BufferMutReader {
+            data_types,
+            raw_buffer,
+        }
+    }
+
+    #[inline]
+    fn index_out_of_bounds_check(
+        &self,
+        index: usize,
+        field_len: usize,
+        data_type: u8,
+    ) -> Result<(), std::io::Error> {
+        if self.raw_buffer.field_pos_index[index] + field_len > self.raw_buffer.buf_len {
+            return Err(std::io::Error::from(ErrorKind::UnexpectedEof));
+        }
+
+        if self.data_types[index] != data_type {
+            return Err(std::io::Error::from(ErrorKind::InvalidData));
+        }
+
+        Ok(())
+    }
+
+    pub fn get_bytes_mut(&mut self, index: usize) -> Result<&mut [u8], std::io::Error> {
+        let start = self.raw_buffer.field_pos_index[index];
+        let s = self
+            .raw_buffer
+            .buf
+            .get(start..start + 4)
+            .map(|x| unsafe { u32::from_le_bytes(*(x as *const _ as *const [_; 4])) })
+            .unwrap();
+
+        let len = s as usize;
+
+        self.index_out_of_bounds_check(index, len + 4, types::BYTES)?;
+
+        let start = start + 4;
+
+        let s = self.raw_buffer.buf.get_mut(start..start + len).unwrap();
+        Ok(s)
+    }
+
+    pub fn get_bytes_raw_mut(&mut self, index: usize) -> Result<&mut [u8], std::io::Error> {
+        let data_type = self.data_types[index];
+        if data_type == types::BYTES {
+            self.get_bytes_mut(index)
+        } else {
+            let len = types::len(data_type) as usize;
+            let start = self.raw_buffer.field_pos_index[index];
+
+            let s = self.raw_buffer.buf.get_mut(start..start + len).unwrap();
+
+            Ok(s)
+        }
+    }
+}
+
+pub struct BufferReader<'a, 'b> {
+    raw_buffer: &'a Buffer,
+    data_types: &'b [u8],
+}
+
+impl<'a, 'b> BufferReader<'a, 'b> {
+    fn new(raw_buffer: &'a Buffer, data_types: &'b [u8]) -> Self {
         BufferReader {
             data_types,
             raw_buffer,
@@ -183,7 +255,7 @@ impl<'a, 'b> BufferReader<'a, 'b> {
         Ok(())
     }
 
-    pub fn get_bool(&mut self, index: usize) -> Result<bool, std::io::Error> {
+    pub fn get_bool(&self, index: usize) -> Result<bool, std::io::Error> {
         self.index_out_of_bounds_check(index, 1, types::BOOL)?;
 
         let start = self.raw_buffer.field_pos_index[index];
@@ -197,7 +269,7 @@ impl<'a, 'b> BufferReader<'a, 'b> {
         Ok(s)
     }
 
-    pub fn get_i8(&mut self, index: usize) -> Result<i8, std::io::Error> {
+    pub fn get_i8(&self, index: usize) -> Result<i8, std::io::Error> {
         self.index_out_of_bounds_check(index, 1, types::I8)?;
 
         let start = self.raw_buffer.field_pos_index[index];
@@ -211,7 +283,7 @@ impl<'a, 'b> BufferReader<'a, 'b> {
         Ok(s)
     }
 
-    pub fn get_u8(&mut self, index: usize) -> Result<u8, std::io::Error> {
+    pub fn get_u8(&self, index: usize) -> Result<u8, std::io::Error> {
         self.index_out_of_bounds_check(index, 1, types::U8)?;
 
         let start = self.raw_buffer.field_pos_index[index];
@@ -225,7 +297,7 @@ impl<'a, 'b> BufferReader<'a, 'b> {
         Ok(s)
     }
 
-    pub fn get_i16(&mut self, index: usize) -> Result<i16, std::io::Error> {
+    pub fn get_i16(&self, index: usize) -> Result<i16, std::io::Error> {
         self.index_out_of_bounds_check(index, 2, types::I16)?;
 
         let start = self.raw_buffer.field_pos_index[index];
@@ -239,7 +311,7 @@ impl<'a, 'b> BufferReader<'a, 'b> {
         Ok(s)
     }
 
-    pub fn get_u16(&mut self, index: usize) -> Result<u16, std::io::Error> {
+    pub fn get_u16(&self, index: usize) -> Result<u16, std::io::Error> {
         self.index_out_of_bounds_check(index, 2, types::U16)?;
 
         let start = self.raw_buffer.field_pos_index[index];
@@ -253,7 +325,7 @@ impl<'a, 'b> BufferReader<'a, 'b> {
         Ok(s)
     }
 
-    pub fn get_i32(&mut self, index: usize) -> Result<i32, std::io::Error> {
+    pub fn get_i32(&self, index: usize) -> Result<i32, std::io::Error> {
         self.index_out_of_bounds_check(index, 4, types::I32)?;
 
         let start = self.raw_buffer.field_pos_index[index];
@@ -267,7 +339,7 @@ impl<'a, 'b> BufferReader<'a, 'b> {
         Ok(s)
     }
 
-    pub fn get_u32(&mut self, index: usize) -> Result<u32, std::io::Error> {
+    pub fn get_u32(&self, index: usize) -> Result<u32, std::io::Error> {
         self.index_out_of_bounds_check(index, 4, types::U32)?;
 
         let start = self.raw_buffer.field_pos_index[index];
@@ -281,7 +353,7 @@ impl<'a, 'b> BufferReader<'a, 'b> {
         Ok(s)
     }
 
-    pub fn get_i64(&mut self, index: usize) -> Result<i64, std::io::Error> {
+    pub fn get_i64(&self, index: usize) -> Result<i64, std::io::Error> {
         self.index_out_of_bounds_check(index, 8, types::I64)?;
 
         let start = self.raw_buffer.field_pos_index[index];
@@ -295,7 +367,7 @@ impl<'a, 'b> BufferReader<'a, 'b> {
         Ok(s)
     }
 
-    pub fn get_u64(&mut self, index: usize) -> Result<u64, std::io::Error> {
+    pub fn get_u64(&self, index: usize) -> Result<u64, std::io::Error> {
         self.index_out_of_bounds_check(index, 8, types::U64)?;
 
         let start = self.raw_buffer.field_pos_index[index];
@@ -323,7 +395,7 @@ impl<'a, 'b> BufferReader<'a, 'b> {
         Ok(s)
     }
 
-    pub fn get_f64(&mut self, index: usize) -> Result<f64, std::io::Error> {
+    pub fn get_f64(&self, index: usize) -> Result<f64, std::io::Error> {
         self.index_out_of_bounds_check(index, 8, types::F64)?;
 
         let start = self.raw_buffer.field_pos_index[index];
@@ -337,7 +409,7 @@ impl<'a, 'b> BufferReader<'a, 'b> {
         Ok(s)
     }
 
-    pub fn get_str(&mut self, index: usize) -> Result<&str, std::io::Error> {
+    pub fn get_str(&self, index: usize) -> Result<&'a str, std::io::Error> {
         match self.get_bytes(index) {
             Ok(bytes) => {
                 std::str::from_utf8(bytes).map_err(|_e|std::io::Error::from(ErrorKind::InvalidData))
@@ -346,7 +418,7 @@ impl<'a, 'b> BufferReader<'a, 'b> {
         }
     }
 
-    pub fn get_bytes(&mut self, index: usize) -> Result<&[u8], std::io::Error> {
+    pub fn get_bytes(&self, index: usize) -> Result<&'a [u8], std::io::Error> {
         let start = self.raw_buffer.field_pos_index[index];
         let s = self
             .raw_buffer
@@ -365,26 +437,7 @@ impl<'a, 'b> BufferReader<'a, 'b> {
         Ok(s)
     }
 
-    pub fn get_bytes_mut(&mut self, index: usize) -> Result<&mut [u8], std::io::Error> {
-        let start = self.raw_buffer.field_pos_index[index];
-        let s = self
-            .raw_buffer
-            .buf
-            .get(start..start + 4)
-            .map(|x| unsafe { u32::from_le_bytes(*(x as *const _ as *const [_; 4])) })
-            .unwrap();
-
-        let len = s as usize;
-
-        self.index_out_of_bounds_check(index, len + 4, types::BYTES)?;
-
-        let start = start + 4;
-
-        let s = self.raw_buffer.buf.get_mut(start..start + len).unwrap();
-        Ok(s)
-    }
-
-    pub fn get_bytes_raw(&mut self, index: usize) -> Result<&[u8], std::io::Error> {
+    pub fn get_bytes_raw(&self, index: usize) -> Result<&[u8], std::io::Error> {
         let data_type = self.data_types[index];
         if data_type == types::BYTES {
             self.get_bytes(index)
@@ -398,19 +451,6 @@ impl<'a, 'b> BufferReader<'a, 'b> {
         }
     }
 
-    pub fn get_bytes_raw_mut(&mut self, index: usize) -> Result<&mut [u8], std::io::Error> {
-        let data_type = self.data_types[index];
-        if data_type == types::BYTES {
-            self.get_bytes_mut(index)
-        } else {
-            let len = types::len(data_type) as usize;
-            let start = self.raw_buffer.field_pos_index[index];
-
-            let s = self.raw_buffer.buf.get_mut(start..start + len).unwrap();
-
-            Ok(s)
-        }
-    }
 }
 
 pub struct BufferWriter<'a, 'b> {

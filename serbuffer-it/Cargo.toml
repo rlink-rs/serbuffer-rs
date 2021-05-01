@@ -1,0 +1,18 @@
+[package]
+name = "serbuffer-it"
+version = "1.2.0"
+authors = ["yorkart <wangyue11.4@163.com>>"]
+edition = "2018"
+description = "Memory Efficient Serialization Library"
+keywords = ["serialization", "zero-copy", "codegen"]
+repository = "https://github.com/rlink-rs/serbuffer-rs.git"
+license = "MIT/Apache-2.0"
+
+[lib]
+name = "serbuffer_it"
+
+[dependencies]
+serbuffer = { path = "../serbuffer", version = "1.2" }
+
+[build-dependencies]
+serbuffer-gen = { path = "../serbuffer-gen", version = "1.2" }

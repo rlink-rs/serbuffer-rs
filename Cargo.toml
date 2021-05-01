@@ -2,4 +2,5 @@
 members = [
     "serbuffer",
     "serbuffer-gen",
+    "serbuffer-it",
 ]
