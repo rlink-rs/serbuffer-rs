@@ -1,9 +1,8 @@
-
 use std::io::ErrorKind;
 
 use bytes::BufMut;
 
-use crate::{Buffer, types};
+use crate::{types, Buffer};
 
 pub struct BufferWriter<'a, 'b> {
     raw_buffer: &'a mut Buffer,

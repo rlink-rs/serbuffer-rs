@@ -4,6 +4,7 @@ pub mod writer;
 
 pub use buffer::types;
 pub use buffer::Buffer;
+pub use reader::BufferMutReader;
 pub use reader::BufferReader;
 pub use writer::BufferWriter;
 
