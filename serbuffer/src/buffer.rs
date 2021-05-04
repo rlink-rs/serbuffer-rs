@@ -41,13 +41,13 @@ pub mod types {
 
 #[derive(Clone, Debug)]
 pub struct Buffer {
-    buf: BytesMut,
-    buf_len: usize,
+    pub(crate) buf: BytesMut,
+    pub(crate) buf_len: usize,
 
     /// field position index cache, build by `Writer` and for `Reader` fast read.
     /// the field is not serialized and deserialized.
     /// must be clear when some create operator such as `new`,`extend`,`reset` ..
-    field_pos_index: Vec<usize>,
+    pub(crate) field_pos_index: Vec<usize>,
 }
 
 impl Buffer {
