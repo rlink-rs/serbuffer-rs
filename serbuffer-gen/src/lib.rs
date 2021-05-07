@@ -63,7 +63,7 @@ impl Codegen {
 #![allow(clippy::all)]
 
 #![allow(unused_attributes)]
-#![rustfmt::skip]
+#![cfg_attr(rustfmt, rustfmt_skip)]
 
 #![allow(box_pointers)]
 #![allow(dead_code)]
@@ -100,16 +100,21 @@ impl Codegen {
     fn build_field_index(&self) -> String {
         let mut indies = Vec::new();
         for index in 0..self.fields.len() {
-            let field_index = format!("    pub const {}: usize = {};", &self.fields[index].name, index);
+            let field_index = format!(
+                "    pub const {}: usize = {};",
+                &self.fields[index].name, index
+            );
             indies.push(field_index);
         }
 
-        format!(r#"
+        format!(
+            r#"
 pub mod index {{
 {}
 }}
         "#,
-        indies.join("\n"))
+            indies.join("\n")
+        )
     }
 
     fn build_data_type(&self) -> String {
@@ -292,10 +297,7 @@ impl<'a> FieldWriter<'a> {{
                 DataType::STRING => {
                     ref_type = true;
                     fields = format!("{}\n    pub {}: &'a str,", fields, field.name);
-                    writers = format!(
-                        "{}\n        writer.set_str(self.{})?;",
-                        writers, field.name
-                    );
+                    writers = format!("{}\n        writer.set_str(self.{})?;", writers, field.name);
                     readers = format!(
                         "{}\n            {}: reader.get_str({})?,",
                         readers, field.name, index
@@ -315,11 +317,7 @@ impl<'a> FieldWriter<'a> {{
             };
         }
 
-        let ref_type = if ref_type {
-            "<'a>"
-        } else {
-            ""
-        };
+        let ref_type = if ref_type { "<'a>" } else { "" };
 
         format!(
             r#"
