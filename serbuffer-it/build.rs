@@ -8,6 +8,7 @@ fn main() {
         .field("group", STRING)
         .field("service", I32)
         .field("count", I64)
+        .set_serde_derive()
         .gen()
         .expect("buffer gen error");
 }

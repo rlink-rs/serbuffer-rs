@@ -5,6 +5,8 @@ use std::io::Write;
 use std::iter::FromIterator;
 use std::path::{Path, PathBuf};
 
+pub const VERSION: &'static str = env!("CARGO_PKG_VERSION");
+
 /// code gen
 /// struct Demo {
 ///   timestamp: u64
@@ -16,6 +18,7 @@ pub struct Codegen {
     schema: String,
     schema_snake: String,
     fields: Vec<Filed>,
+    serde_derive: bool,
 }
 
 impl Codegen {
@@ -26,6 +29,7 @@ impl Codegen {
             schema: schema.to_string(),
             schema_snake,
             fields: Vec::new(),
+            serde_derive: false,
         }
     }
 
@@ -35,6 +39,11 @@ impl Codegen {
             data_type,
         });
 
+        self
+    }
+
+    pub fn set_serde_derive(&mut self) -> &mut Self {
+        self.serde_derive = true;
         self
     }
 
@@ -74,7 +83,7 @@ impl Codegen {
 #![allow(trivial_casts)]
 #![allow(unused_imports)]
 #![allow(unused_results)]
-//! Generated file by schema {}
+//! Generated file by schema {}, version {}
 
 {}
 {}
@@ -84,6 +93,7 @@ impl Codegen {
 {}
 "#,
             self.schema,
+            VERSION,
             use_script.trim_end(),
             field_indies.trim_end(),
             data_type.trim_end(),
@@ -318,10 +328,15 @@ impl<'a> FieldWriter<'a> {{
         }
 
         let ref_type = if ref_type { "<'a>" } else { "" };
+        let serde_derive = if self.serde_derive {
+            ", Serialize, Deserialize"
+        } else {
+            ""
+        };
 
         format!(
             r#"
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug{})]
 pub struct Entity{} {{
     {}
 }}
@@ -346,6 +361,7 @@ impl{} Entity{} {{
     }}
 }}
             "#,
+            serde_derive,
             ref_type,
             fields.trim_start(),
             ref_type,

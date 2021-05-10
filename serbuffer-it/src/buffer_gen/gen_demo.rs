@@ -13,7 +13,7 @@
 #![allow(trivial_casts)]
 #![allow(unused_imports)]
 #![allow(unused_results)]
-//! Generated file by schema GenDemo
+//! Generated file by schema GenDemo, version 1.2.3
 
 use serbuffer::{types, BufferReader, BufferWriter, Buffer};
 
@@ -129,7 +129,7 @@ impl<'a> FieldWriter<'a> {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Entity<'a> {
     pub timestamp: u64,
     pub index: u8,
