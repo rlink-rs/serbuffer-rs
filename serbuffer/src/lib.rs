@@ -1,4 +1,5 @@
 pub mod buffer;
+pub mod encoding;
 pub mod reader;
 pub mod writer;
 
