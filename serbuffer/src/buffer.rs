@@ -1,8 +1,9 @@
 //! https://github.com/capnproto/capnproto-rust/blob/master/capnp/src/lib.rs
 
-use bytes::{ BufMut, BytesMut};
+use bytes::{BufMut, BytesMut};
 
-use crate::reader::{BufferReader, BufferMutReader};
+use crate::encoding::read_lenenc_int;
+use crate::reader::{BufferMutReader, BufferReader};
 use crate::writer::BufferWriter;
 
 pub mod types {
@@ -123,12 +124,10 @@ impl Buffer {
                 self.field_pos_index.push(field_start_pos);
                 let data_type = data_types[index];
                 if data_type == types::BYTES {
-                    let len = self
-                        .buf
-                        .get(field_start_pos..field_start_pos + 4)
-                        .map(|x| unsafe { u32::from_le_bytes(*(x as *const _ as *const [_; 4])) })
-                        .unwrap();
-                    field_start_pos += (len + 4) as usize;
+                    let (v, len_length) = read_lenenc_int(&self.buf, field_start_pos).unwrap();
+                    let len = v as usize;
+
+                    field_start_pos += (len + len_length) as usize;
                 } else {
                     let len = types::len(data_type);
                     field_start_pos += len as usize;

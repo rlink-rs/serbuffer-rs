@@ -2,7 +2,9 @@ use std::io::ErrorKind;
 
 use bytes::BufMut;
 
+use crate::encoding::write_lenenc_int;
 use crate::{types, Buffer};
+use std::borrow::BorrowMut;
 
 pub struct BufferWriter<'a, 'b> {
     raw_buffer: &'a mut Buffer,
@@ -148,12 +150,25 @@ impl<'a, 'b> BufferWriter<'a, 'b> {
         self.data_type_check(types::BYTES)?;
 
         let len = value.len();
-        self.step_position(len + 4);
 
-        self.raw_buffer.buf.put_u32_le(len as u32);
+        let len_length = write_lenenc_int(len as u64, self.raw_buffer.buf.borrow_mut());
         self.raw_buffer.buf.put_slice(value);
+
+        self.step_position(len + len_length);
+
         Ok(())
     }
+
+    // pub fn set_bytes(&mut self, value: &[u8]) -> Result<(), std::io::Error> {
+    //     self.data_type_check(types::BYTES)?;
+    //
+    //     let len = value.len();
+    //     self.step_position(len + 4);
+    //
+    //     self.raw_buffer.buf.put_u32_le(len as u32);
+    //     self.raw_buffer.buf.put_slice(value);
+    //     Ok(())
+    // }
 
     pub fn set_bytes_raw(&mut self, value: &[u8]) -> Result<(), std::io::Error> {
         let data_type = self.data_types[self.write_field_step];
