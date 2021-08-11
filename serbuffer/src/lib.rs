@@ -9,6 +9,11 @@ pub use reader::BufferMutReader;
 pub use reader::BufferReader;
 pub use writer::BufferWriter;
 
+pub trait FieldMetadata {
+    fn field_type(&self) -> &'static [u8];
+    fn field_name(&self) -> &'static [&'static str];
+}
+
 #[cfg(test)]
 mod tests {
     use crate::{types, Buffer};

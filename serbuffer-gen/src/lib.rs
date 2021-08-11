@@ -63,6 +63,8 @@ impl Codegen {
         let use_script = self.build_use();
         let field_indies = self.build_field_index();
         let data_type = self.build_data_type();
+        let field_name = self.build_field_name();
+        let field_metadata = self.build_field_metadata();
         let field_reader = self.build_field_reader();
         let field_writer = self.build_field_writer();
         let entity = self.build_entity();
@@ -91,12 +93,16 @@ impl Codegen {
 {}
 {}
 {}
+{}
+{}
 "#,
             self.schema,
             VERSION,
             use_script.trim_end(),
             field_indies.trim_end(),
             data_type.trim_end(),
+            field_name.trim_end(),
+            field_metadata.trim_end(),
             field_reader.trim_end(),
             field_writer.trim_end(),
             entity.trim_end(),
@@ -153,6 +159,56 @@ pub const FIELD_TYPE: [u8; {}] = [
         );
 
         script
+    }
+
+    fn build_field_name(&self) -> String {
+        let mut field_script = "".to_string();
+        for index in 0..self.fields.len() {
+            let field = self.fields.get(index).unwrap();
+            let data_type = format!(
+                r#"    // {}: {}
+    "{}",
+"#,
+                index, field.name, field.name,
+            );
+            field_script = format!("{}{}", field_script, data_type);
+        }
+
+        let script = format!(
+            r#"
+pub const FIELD_NAME: [&'static str; {}] = [
+{}
+];"#,
+            self.fields.len(),
+            field_script.trim_end(),
+        );
+
+        script
+    }
+
+    fn build_field_metadata(&self) -> String {
+        format!(
+            r#"
+pub struct FieldMetadata {{
+    field_type: &'static [u8; {}],
+    field_name: &'static [&'static str; {}],
+}}
+
+impl serbuffer::FieldMetadata for FieldMetadata {{
+    fn field_type(&self) -> &'static [u8] {{
+        &self.field_type[..]
+    }}
+
+    fn field_name(&self) -> &'static [&'static str] {{
+        &self.field_name[..]
+    }}
+}}
+
+pub const FIELD_METADATA: FieldMetadata = FieldMetadata {{ field_type: &FIELD_TYPE, field_name: &FIELD_NAME }};
+"#,
+            self.fields.len(),
+            self.fields.len(),
+        )
     }
 
     fn build_field_reader(&self) -> String {
