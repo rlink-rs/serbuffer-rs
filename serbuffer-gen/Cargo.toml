@@ -1,7 +1,7 @@
 [package]
 name = "serbuffer-gen"
 version = "1.2.6"
-authors = ["yorkart <wangyue11.4@163.com>>"]
+authors = ["yorkart <wangyue11.4@163.com>"]
 edition = "2018"
 description = "Memory Efficient Serialization Library"
 keywords = ["serialization", "zero-copy", "codegen"]
