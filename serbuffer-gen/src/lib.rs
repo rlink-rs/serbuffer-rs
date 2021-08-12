@@ -110,7 +110,7 @@ impl Codegen {
     }
 
     fn build_use(&self) -> String {
-        "use serbuffer::{types, BufferReader, BufferWriter, Buffer};\n".to_string()
+        "use serbuffer::{types, BufferReader, BufferWriter, Buffer, FieldMetadata};\n".to_string()
     }
 
     fn build_field_index(&self) -> String {
@@ -189,24 +189,8 @@ pub const FIELD_NAME: [&'static str; {}] = [
     fn build_field_metadata(&self) -> String {
         format!(
             r#"
-pub struct FieldMetadata {{
-    field_type: &'static [u8; {}],
-    field_name: &'static [&'static str; {}],
-}}
-
-impl serbuffer::FieldMetadata for FieldMetadata {{
-    fn field_type(&self) -> &'static [u8] {{
-        &self.field_type[..]
-    }}
-
-    fn field_name(&self) -> &'static [&'static str] {{
-        &self.field_name[..]
-    }}
-}}
-
-pub const FIELD_METADATA: FieldMetadata = FieldMetadata {{ field_type: &FIELD_TYPE, field_name: &FIELD_NAME }};
+pub const FIELD_METADATA: FieldMetadata<{}> = FieldMetadata::new(&FIELD_TYPE, &FIELD_NAME);
 "#,
-            self.fields.len(),
             self.fields.len(),
         )
     }
