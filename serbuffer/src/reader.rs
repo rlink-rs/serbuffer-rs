@@ -201,12 +201,11 @@ impl<'a, 'b> BufferReader<'a, 'b> {
         let (v, len_length) = read_lenenc_int(&self.raw_buffer.buf, start)?;
 
         let len = v as usize;
-
         self.index_out_of_bounds_check(index, len + len_length, types::BYTES)?;
 
         let start = start + len_length;
-
         let s = self.raw_buffer.buf.get(start..start + len).unwrap();
+
         Ok(s)
     }
 
@@ -441,39 +440,26 @@ impl<'a, 'b> BufferMutReader<'a, 'b> {
 
     pub fn get_bytes(&mut self, index: usize) -> Result<&[u8], std::io::Error> {
         let start = self.raw_buffer.field_pos_index[index];
-        let s = self
-            .raw_buffer
-            .buf
-            .get(start..start + 4)
-            .map(|x| unsafe { u32::from_le_bytes(*(x as *const _ as *const [_; 4])) })
-            .unwrap();
+        let (v, len_length) = read_lenenc_int(&self.raw_buffer.buf, start)?;
 
-        let len = s as usize;
+        let len = v as usize;
+        self.index_out_of_bounds_check(index, len + len_length, types::BYTES)?;
 
-        self.index_out_of_bounds_check(index, len + 4, types::BYTES)?;
-
-        let start = start + 4;
-
+        let start = start + len_length;
         let s = self.raw_buffer.buf.get(start..start + len).unwrap();
         Ok(s)
     }
 
     pub fn get_bytes_mut(&mut self, index: usize) -> Result<&mut [u8], std::io::Error> {
         let start = self.raw_buffer.field_pos_index[index];
-        let s = self
-            .raw_buffer
-            .buf
-            .get(start..start + 4)
-            .map(|x| unsafe { u32::from_le_bytes(*(x as *const _ as *const [_; 4])) })
-            .unwrap();
+        let (v, len_length) = read_lenenc_int(&self.raw_buffer.buf, start)?;
 
-        let len = s as usize;
+        let len = v as usize;
+        self.index_out_of_bounds_check(index, len + len_length, types::BYTES)?;
 
-        self.index_out_of_bounds_check(index, len + 4, types::BYTES)?;
-
-        let start = start + 4;
-
+        let start = start + len_length;
         let s = self.raw_buffer.buf.get_mut(start..start + len).unwrap();
+
         Ok(s)
     }
 
