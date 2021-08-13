@@ -200,10 +200,10 @@ pub const FIELD_METADATA: FieldMetadata<{}> = FieldMetadata::new(&FIELD_TYPE, &F
         for index in 0..self.fields.len() {
             let field = self.fields.get(index).unwrap();
             let method_script = match field.data_type {
-                DataType::BYTES => format!(
+                DataType::BINARY => format!(
                     r#"
     pub fn get_{}(&mut self) -> Result<&[u8], std::io::Error> {{
-        self.reader.get_bytes({})
+        self.reader.get_binary({})
     }}
 "#,
                     field.name, index
@@ -251,12 +251,12 @@ impl<'a> FieldReader<'a> {{
         for index in 0..self.fields.len() {
             let field = self.fields.get(index).unwrap();
             let method_script = match field.data_type {
-                DataType::BYTES => format!(
+                DataType::BINARY => format!(
                     r#"
     pub fn set_{}(&mut self, {}: &[u8]) -> Result<(), std::io::Error> {{
         if self.writer_pos == {} {{
             self.writer_pos += 1;
-            self.writer.set_bytes({})
+            self.writer.set_binary({})
         }} else {{
             Err(std::io::Error::new(std::io::ErrorKind::InvalidInput, "`{}` must be set sequentially"))
         }}
@@ -332,15 +332,15 @@ impl<'a> FieldWriter<'a> {{
             let field = self.fields.get(index).unwrap();
 
             match field.data_type {
-                DataType::BYTES => {
+                DataType::BINARY => {
                     ref_type = true;
                     fields = format!("{}\n    pub {}: &'a [u8],", fields, field.name);
                     writers = format!(
-                        "{}\n        writer.set_bytes(self.{})?;",
+                        "{}\n        writer.set_binary(self.{})?;",
                         writers, field.name
                     );
                     readers = format!(
-                        "{}\n            {}: reader.get_bytes({})?,",
+                        "{}\n            {}: reader.get_binary({})?,",
                         readers, field.name, index
                     );
                 }
@@ -444,7 +444,7 @@ pub enum DataType {
     I64,
     F32,
     F64,
-    BYTES,
+    BINARY,
     STRING,
 }
 
@@ -462,7 +462,7 @@ impl Display for DataType {
             DataType::I64 => write!(f, "{}", "I64".to_lowercase()),
             DataType::F32 => write!(f, "{}", "F32".to_lowercase()),
             DataType::F64 => write!(f, "{}", "F64".to_lowercase()),
-            DataType::BYTES => write!(f, "{}", "BYTES".to_lowercase()),
+            DataType::BINARY => write!(f, "{}", "BINARY".to_lowercase()),
             DataType::STRING => write!(f, "{}", "STRING".to_lowercase()),
         }
     }
@@ -484,7 +484,7 @@ impl TryFrom<&str> for DataType {
             "I64" => Ok(DataType::I64),
             "F32" => Ok(DataType::F32),
             "F64" => Ok(DataType::F64),
-            "BYTES" => Ok(DataType::BYTES),
+            "BINARY" => Ok(DataType::BINARY),
             "STRING" => Ok(DataType::STRING),
             _ => Err("unknown"),
         }
@@ -521,7 +521,7 @@ mod tests {
             .field("agent_id", DataType::STRING)
             .field("a", DataType::BOOL)
             .field("a1", DataType::U8)
-            .field("a2", DataType::BYTES)
+            .field("a2", DataType::BINARY)
             .build_script();
 
         println!("-- Start ---");

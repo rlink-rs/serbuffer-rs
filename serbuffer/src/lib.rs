@@ -17,7 +17,6 @@ mod tests {
 
     #[test]
     pub fn buffer_test() {
-        let mut buffer = Buffer::new();
         let data_types = vec![
             types::BOOL,
             types::I8,
@@ -30,9 +29,9 @@ mod tests {
             types::U64,
             types::F32,
             types::F64,
-            types::BYTES,
-            types::BYTES,
-            types::BYTES,
+            types::BINARY,
+            types::STRING,
+            types::STRING,
             types::I32,
         ];
 
@@ -44,6 +43,8 @@ mod tests {
             "bbbb",
         ];
         for i in 0..strs.len() {
+            let mut buffer = Buffer::new();
+
             let uuid1 = strs[i];
             let uuid2 = uuid::Uuid::new_v4().to_string();
             let uuid2 = uuid2.as_str();
@@ -67,7 +68,7 @@ mod tests {
             writer.set_f32(18.001 + i as f32).unwrap();
             writer.set_f64(19.002 + i as f64).unwrap();
 
-            writer.set_str(uuid1).unwrap();
+            writer.set_binary(uuid1.as_bytes()).unwrap();
             writer.set_str(uuid2).unwrap();
             writer.set_str("").unwrap();
 
@@ -75,7 +76,7 @@ mod tests {
 
             println!("{:?}", buffer.buf.as_ref());
 
-            let mut reader = buffer.as_reader(&data_types);
+            let reader = buffer.as_reader(&data_types);
 
             assert_eq!(reader.get_bool(0).unwrap(), i % 2 == 0);
 
@@ -94,7 +95,7 @@ mod tests {
             assert_eq!(reader.get_f32(9).unwrap(), 18.001 + i as f32);
             assert_eq!(reader.get_f64(10).unwrap(), 19.002 + i as f64);
 
-            assert_eq!(reader.get_str(11).unwrap(), uuid1.to_string());
+            assert_eq!(reader.get_binary(11).unwrap(), uuid1.as_bytes());
             assert_eq!(reader.get_str(12).unwrap(), uuid2.to_string());
             assert_eq!(reader.get_str(13).unwrap(), "".to_string());
 
@@ -115,7 +116,7 @@ mod tests {
             types::I32,
             types::I64,
             types::F32,
-            types::BYTES,
+            types::BINARY,
             types::I32,
         ];
         let data_types1 = [
@@ -124,7 +125,7 @@ mod tests {
             types::U32,
             types::U64,
             types::F64,
-            types::BYTES,
+            types::BINARY,
             types::U32,
         ];
 
@@ -163,7 +164,7 @@ mod tests {
 
         let mut data_type_merge = data_types0.to_vec();
         data_type_merge.extend_from_slice(&data_types1);
-        let mut reader = buffer0.as_reader(data_type_merge.as_slice());
+        let reader = buffer0.as_reader(data_type_merge.as_slice());
 
         assert_eq!(reader.get_i8(0).unwrap(), (10) as i8);
         assert_eq!(reader.get_i16(1).unwrap(), (12) as i16);

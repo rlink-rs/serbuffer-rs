@@ -160,7 +160,7 @@ impl<'a, 'b> BufferReader<'a, 'b> {
         Ok(s)
     }
 
-    pub fn get_f32(&mut self, index: usize) -> Result<f32, std::io::Error> {
+    pub fn get_f32(&self, index: usize) -> Result<f32, std::io::Error> {
         self.index_out_of_bounds_check(index, 4, types::F32)?;
 
         let start = self.raw_buffer.field_pos_index[index];
@@ -189,19 +189,23 @@ impl<'a, 'b> BufferReader<'a, 'b> {
     }
 
     pub fn get_str(&self, index: usize) -> Result<&'a str, std::io::Error> {
-        match self.get_bytes(index) {
+        match self.get_bytes(index, types::STRING) {
             Ok(bytes) => std::str::from_utf8(bytes)
                 .map_err(|_e| std::io::Error::from(ErrorKind::InvalidData)),
             Err(e) => Err(e),
         }
     }
 
-    pub fn get_bytes(&self, index: usize) -> Result<&'a [u8], std::io::Error> {
+    pub fn get_binary(&self, index: usize) -> Result<&'a [u8], std::io::Error> {
+        self.get_bytes(index, types::BINARY)
+    }
+
+    fn get_bytes(&self, index: usize, data_type_id: u8) -> Result<&'a [u8], std::io::Error> {
         let start = self.raw_buffer.field_pos_index[index];
         let (v, len_length) = read_lenenc_int(&self.raw_buffer.buf, start)?;
 
         let len = v as usize;
-        self.index_out_of_bounds_check(index, len + len_length, types::BYTES)?;
+        self.index_out_of_bounds_check(index, len + len_length, data_type_id)?;
 
         let start = start + len_length;
         let s = self.raw_buffer.buf.get(start..start + len).unwrap();
@@ -209,31 +213,12 @@ impl<'a, 'b> BufferReader<'a, 'b> {
         Ok(s)
     }
 
-    // pub fn get_bytes(&self, index: usize) -> Result<&'a [u8], std::io::Error> {
-    //     let start = self.raw_buffer.field_pos_index[index];
-    //     let s = self
-    //         .raw_buffer
-    //         .buf
-    //         .get(start..start + 4)
-    //         .map(|x| unsafe { u32::from_le_bytes(*(x as *const _ as *const [_; 4])) })
-    //         .unwrap();
-    //
-    //     let len = s as usize;
-    //
-    //     self.index_out_of_bounds_check(index, len + 4, types::BYTES)?;
-    //
-    //     let start = start + 4;
-    //
-    //     let s = self.raw_buffer.buf.get(start..start + len).unwrap();
-    //     Ok(s)
-    // }
-
     pub fn get_bytes_raw(&self, index: usize) -> Result<&[u8], std::io::Error> {
-        let data_type = self.data_types[index];
-        if data_type == types::BYTES {
-            self.get_bytes(index)
+        let data_type_id = self.data_types[index];
+        if data_type_id >= types::BINARY {
+            self.get_bytes(index, data_type_id)
         } else {
-            let len = types::len(data_type) as usize;
+            let len = types::len(data_type_id) as usize;
             let start = self.raw_buffer.field_pos_index[index];
 
             let s = self.raw_buffer.buf.get(start..start + len).unwrap();
@@ -431,31 +416,39 @@ impl<'a, 'b> BufferMutReader<'a, 'b> {
     }
 
     pub fn get_str(&mut self, index: usize) -> Result<String, std::io::Error> {
-        match self.get_bytes(index) {
+        match self.get_bytes(index, types::STRING) {
             Ok(bytes) => String::from_utf8(bytes.to_vec())
                 .map_err(|_e| std::io::Error::from(ErrorKind::InvalidData)),
             Err(e) => Err(e),
         }
     }
 
-    pub fn get_bytes(&mut self, index: usize) -> Result<&[u8], std::io::Error> {
+    pub fn get_binary(&mut self, index: usize) -> Result<&[u8], std::io::Error> {
+        self.get_bytes(index, types::BINARY)
+    }
+
+    fn get_bytes(&mut self, index: usize, data_type_id: u8) -> Result<&[u8], std::io::Error> {
         let start = self.raw_buffer.field_pos_index[index];
         let (v, len_length) = read_lenenc_int(&self.raw_buffer.buf, start)?;
 
         let len = v as usize;
-        self.index_out_of_bounds_check(index, len + len_length, types::BYTES)?;
+        self.index_out_of_bounds_check(index, len + len_length, data_type_id)?;
 
         let start = start + len_length;
         let s = self.raw_buffer.buf.get(start..start + len).unwrap();
         Ok(s)
     }
 
-    pub fn get_bytes_mut(&mut self, index: usize) -> Result<&mut [u8], std::io::Error> {
+    fn get_bytes_mut(
+        &mut self,
+        index: usize,
+        data_type_id: u8,
+    ) -> Result<&mut [u8], std::io::Error> {
         let start = self.raw_buffer.field_pos_index[index];
         let (v, len_length) = read_lenenc_int(&self.raw_buffer.buf, start)?;
 
         let len = v as usize;
-        self.index_out_of_bounds_check(index, len + len_length, types::BYTES)?;
+        self.index_out_of_bounds_check(index, len + len_length, data_type_id)?;
 
         let start = start + len_length;
         let s = self.raw_buffer.buf.get_mut(start..start + len).unwrap();
@@ -464,11 +457,11 @@ impl<'a, 'b> BufferMutReader<'a, 'b> {
     }
 
     pub fn get_bytes_raw(&mut self, index: usize) -> Result<&[u8], std::io::Error> {
-        let data_type = self.data_types[index];
-        if data_type == types::BYTES {
-            self.get_bytes(index)
+        let data_type_id = self.data_types[index];
+        if data_type_id >= types::BINARY {
+            self.get_bytes(index, data_type_id)
         } else {
-            let len = types::len(data_type) as usize;
+            let len = types::len(data_type_id) as usize;
             let start = self.raw_buffer.field_pos_index[index];
 
             let s = self.raw_buffer.buf.get(start..start + len).unwrap();
@@ -478,11 +471,11 @@ impl<'a, 'b> BufferMutReader<'a, 'b> {
     }
 
     pub fn get_bytes_raw_mut(&mut self, index: usize) -> Result<&mut [u8], std::io::Error> {
-        let data_type = self.data_types[index];
-        if data_type == types::BYTES {
-            self.get_bytes_mut(index)
+        let data_type_id = self.data_types[index];
+        if data_type_id >= types::BINARY {
+            self.get_bytes_mut(index, data_type_id)
         } else {
-            let len = types::len(data_type) as usize;
+            let len = types::len(data_type_id) as usize;
             let start = self.raw_buffer.field_pos_index[index];
 
             let s = self.raw_buffer.buf.get_mut(start..start + len).unwrap();

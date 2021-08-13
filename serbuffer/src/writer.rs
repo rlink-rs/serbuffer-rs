@@ -143,11 +143,15 @@ impl<'a, 'b> BufferWriter<'a, 'b> {
 
     pub fn set_str(&mut self, value: &str) -> Result<(), std::io::Error> {
         let s = value.as_bytes();
-        self.set_bytes(s)
+        self.set_bytes(s, types::STRING)
     }
 
-    pub fn set_bytes(&mut self, value: &[u8]) -> Result<(), std::io::Error> {
-        self.data_type_check(types::BYTES)?;
+    pub fn set_binary(&mut self, value: &[u8]) -> Result<(), std::io::Error> {
+        self.set_bytes(value, types::BINARY)
+    }
+
+    fn set_bytes(&mut self, value: &[u8], data_type_id: u8) -> Result<(), std::io::Error> {
+        self.data_type_check(data_type_id)?;
 
         let len = value.len();
 
@@ -159,23 +163,12 @@ impl<'a, 'b> BufferWriter<'a, 'b> {
         Ok(())
     }
 
-    // pub fn set_bytes(&mut self, value: &[u8]) -> Result<(), std::io::Error> {
-    //     self.data_type_check(types::BYTES)?;
-    //
-    //     let len = value.len();
-    //     self.step_position(len + 4);
-    //
-    //     self.raw_buffer.buf.put_u32_le(len as u32);
-    //     self.raw_buffer.buf.put_slice(value);
-    //     Ok(())
-    // }
-
     pub fn set_bytes_raw(&mut self, value: &[u8]) -> Result<(), std::io::Error> {
-        let data_type = self.data_types[self.write_field_step];
-        if data_type == types::BYTES {
-            self.set_bytes(value)
+        let data_type_id = self.data_types[self.write_field_step];
+        if data_type_id == types::BINARY {
+            self.set_bytes(value, data_type_id)
         } else {
-            let len = types::len(data_type) as usize;
+            let len = types::len(data_type_id) as usize;
             if len != value.len() {
                 return Err(std::io::Error::from(ErrorKind::InvalidInput));
             }

@@ -24,15 +24,13 @@ pub mod types {
     pub const U64: u8 = 0b1001_0011;
     pub const F32: u8 = 0b1010_0010;
     pub const F64: u8 = 0b1011_0011;
-    pub const BYTES: u8 = 0b1100_0000;
-    pub const STRING: u8 = BYTES;
-    // pub const BYTES: u8 = 0b1101_0000;
-    // pub const I = 0b1110;
-    // pub const I = 0b1111;
+
+    pub const BINARY: u8 = 0b1100_0000;
+    pub const STRING: u8 = 0b1100_0001;
 
     #[inline]
-    pub fn len(data_type: u8) -> u8 {
-        let length_mod = data_type & 0b0000_1111;
+    pub fn len(data_type_id: u8) -> u8 {
+        let length_mod = data_type_id & 0b0000_1111;
         if length_mod == 0 {
             1
         } else {
@@ -123,7 +121,7 @@ impl Buffer {
 
                 self.field_pos_index.push(field_start_pos);
                 let data_type = data_types[index];
-                if data_type == types::BYTES {
+                if data_type >= types::BINARY {
                     let (v, len_length) = read_lenenc_int(&self.buf, field_start_pos).unwrap();
                     let len = v as usize;
 
