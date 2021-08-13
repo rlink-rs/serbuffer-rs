@@ -165,7 +165,7 @@ impl<'a, 'b> BufferWriter<'a, 'b> {
 
     pub fn set_bytes_raw(&mut self, value: &[u8]) -> Result<(), std::io::Error> {
         let data_type_id = self.data_types[self.write_field_step];
-        if data_type_id == types::BINARY {
+        if data_type_id >= types::BINARY {
             self.set_bytes(value, data_type_id)
         } else {
             let len = types::len(data_type_id) as usize;
