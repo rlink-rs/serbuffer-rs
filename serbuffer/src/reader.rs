@@ -427,6 +427,10 @@ impl<'a, 'b> BufferMutReader<'a, 'b> {
         self.get_bytes(index, types::BINARY)
     }
 
+    pub fn get_binary_mut(&mut self, index: usize) -> Result<&mut [u8], std::io::Error> {
+        self.get_bytes_mut(index, types::BINARY)
+    }
+
     fn get_bytes(&mut self, index: usize, data_type_id: u8) -> Result<&[u8], std::io::Error> {
         let start = self.raw_buffer.field_pos_index[index];
         let (v, len_length) = read_lenenc_int(&self.raw_buffer.buf, start)?;
