@@ -4,36 +4,29 @@ use std::fs::File;
 use std::io::Write;
 use std::iter::FromIterator;
 use std::path::{Path, PathBuf};
+use std::{env, fs};
 
 pub const VERSION: &'static str = env!("CARGO_PKG_VERSION");
 
-/// code gen
-/// struct Demo {
-///   timestamp: u64
-/// }
-#[derive(Default)]
-pub struct Codegen {
-    /// --lang_out= param
-    out_dir: PathBuf,
+pub struct SchemaBuilder {
     schema: String,
     schema_snake: String,
     fields: Vec<Filed>,
     serde_derive: bool,
 }
 
-impl Codegen {
-    pub fn new(out_dir: impl AsRef<Path>, schema: &str) -> Self {
+impl SchemaBuilder {
+    pub fn new(schema: &str) -> Self {
         let schema_snake = to_snake(schema);
-        Codegen {
-            out_dir: out_dir.as_ref().to_owned(),
+        SchemaBuilder {
             schema: schema.to_string(),
             schema_snake,
-            fields: Vec::new(),
+            fields: vec![],
             serde_derive: false,
         }
     }
 
-    pub fn field(&mut self, name: &str, data_type: DataType) -> &mut Self {
+    pub fn field(mut self, name: &str, data_type: DataType) -> Self {
         self.fields.push(Filed {
             name: name.to_string(),
             data_type,
@@ -42,21 +35,9 @@ impl Codegen {
         self
     }
 
-    pub fn set_serde_derive(&mut self) -> &mut Self {
+    pub fn set_serde_derive(mut self) -> Self {
         self.serde_derive = true;
         self
-    }
-
-    pub fn gen(&self) -> std::io::Result<()> {
-        let script = self.build_script();
-
-        let file_name = format!("{}.rs", self.schema_snake);
-        let file_path = self.out_dir.join(file_name.as_str());
-        let mut file_writer = File::create(&file_path)?;
-        file_writer.write_all(script.as_bytes())?;
-        file_writer.flush()?;
-
-        Ok(())
     }
 
     pub(crate) fn build_script(&self) -> String {
@@ -412,6 +393,72 @@ impl{} Entity{} {{
     }
 }
 
+/// code gen
+/// struct Demo {
+///   timestamp: u64
+/// }
+#[derive(Default)]
+pub struct Codegen {
+    /// --lang_out= param
+    generated_dir: PathBuf,
+    schemas: Vec<SchemaBuilder>,
+}
+
+impl Codegen {
+    pub fn new(generated_dir: &str) -> Self {
+        if Path::new(generated_dir).exists() {
+            fs::remove_dir_all(generated_dir).unwrap();
+        }
+        fs::create_dir(generated_dir).unwrap();
+
+        Codegen {
+            generated_dir: PathBuf::from(generated_dir),
+            schemas: vec![],
+        }
+    }
+
+    pub fn out_dir(path: &str) -> Self {
+        let out_dir = env::var("OUT_DIR").unwrap();
+        let generated_dir = Path::new(out_dir.as_str()).join(path);
+
+        Self::new(generated_dir.as_path().to_str().unwrap())
+    }
+
+    pub fn schema(mut self, schema_builder: SchemaBuilder) -> Self {
+        self.schemas.push(schema_builder);
+        self
+    }
+
+    pub fn gen(&self) -> std::io::Result<()> {
+        for schema_builder in &self.schemas {
+            let script = schema_builder.build_script();
+
+            let file_name = format!("{}.rs", schema_builder.schema_snake);
+            let file_path = self.generated_dir.join(file_name.as_str());
+            let mut file_writer = File::create(&file_path)?;
+            file_writer.write_all(script.as_bytes())?;
+            file_writer.flush()?;
+        }
+
+        {
+            let mods_str: Vec<String> = self
+                .schemas
+                .iter()
+                .map(|x| format!("pub mod {};", x.schema_snake))
+                .collect();
+            let script = mods_str.join("\n");
+
+            let file_name = "mod.rs";
+            let file_path = self.generated_dir.join(file_name);
+            let mut file_writer = File::create(&file_path)?;
+            file_writer.write_all(script.as_bytes())?;
+            file_writer.flush()?;
+        }
+
+        Ok(())
+    }
+}
+
 fn to_snake(s: &str) -> String {
     let mut v = Vec::new();
     for c in s.chars() {
@@ -498,11 +545,11 @@ struct Filed {
 
 #[cfg(test)]
 mod tests {
-    use crate::{Codegen, DataType};
+    use crate::{DataType, SchemaBuilder};
 
     #[test]
     pub fn code_gen_basic_type_test() {
-        let script = Codegen::new("", "DemoSchema")
+        let script = SchemaBuilder::new("DemoSchema")
             .field("timestamp", DataType::U64)
             .field("a", DataType::BOOL)
             .field("a1", DataType::U8)
@@ -515,7 +562,7 @@ mod tests {
 
     #[test]
     pub fn code_gen_ref_type_test() {
-        let script = Codegen::new("", "DemoSchema")
+        let script = SchemaBuilder::new("DemoSchema")
             .field("timestamp", DataType::U64)
             .field("application_name", DataType::STRING)
             .field("agent_id", DataType::STRING)
