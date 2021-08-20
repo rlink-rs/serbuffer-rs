@@ -116,7 +116,7 @@ mod tests {
             types::I32,
             types::I64,
             types::F32,
-            types::BINARY,
+            types::STRING,
             types::I32,
         ];
         let data_types1 = [
@@ -125,7 +125,7 @@ mod tests {
             types::U32,
             types::U64,
             types::F64,
-            types::BINARY,
+            types::STRING,
             types::U32,
         ];
 

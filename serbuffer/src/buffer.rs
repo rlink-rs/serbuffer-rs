@@ -2,7 +2,6 @@
 
 use bytes::{BufMut, BytesMut};
 
-use crate::encoding::read_lenenc_int;
 use crate::reader::{BufferMutReader, BufferReader};
 use crate::writer::BufferWriter;
 
@@ -43,11 +42,6 @@ pub mod types {
 pub struct Buffer {
     pub(crate) buf: BytesMut,
     pub(crate) buf_len: usize,
-
-    /// field position index cache, build by `Writer` and for `Reader` fast read.
-    /// the field is not serialized and deserialized.
-    /// must be clear when some create operator such as `new`,`extend`,`reset` ..
-    pub(crate) field_pos_index: Vec<usize>,
 }
 
 impl Buffer {
@@ -55,7 +49,6 @@ impl Buffer {
         Buffer {
             buf: BytesMut::with_capacity(256),
             buf_len: 0,
-            field_pos_index: vec![],
         }
     }
 
@@ -63,7 +56,6 @@ impl Buffer {
         Buffer {
             buf: BytesMut::with_capacity(capacity),
             buf_len: 0,
-            field_pos_index: vec![],
         }
     }
 
@@ -72,7 +64,6 @@ impl Buffer {
         Buffer {
             buf: bytes,
             buf_len: buffer_len,
-            field_pos_index: vec![],
         }
     }
 
@@ -85,8 +76,6 @@ impl Buffer {
     }
 
     pub fn extend(&mut self, other: &Buffer) -> Result<(), std::io::Error> {
-        self.field_pos_index.clear();
-
         self.buf_len += other.buf_len;
         self.buf.put_slice(other.as_slice());
 
@@ -94,48 +83,15 @@ impl Buffer {
     }
 
     pub fn as_reader<'a, 'b>(&'a mut self, data_types: &'b [u8]) -> BufferReader<'a, 'b> {
-        self.position_index_cache_check(data_types);
-
         BufferReader::new(self, data_types)
     }
 
     pub fn as_reader_mut<'a, 'b>(&'a mut self, data_types: &'b [u8]) -> BufferMutReader<'a, 'b> {
-        self.position_index_cache_check(data_types);
-
         BufferMutReader::new(self, data_types)
     }
 
     pub fn as_writer<'a, 'b>(&'a mut self, data_types: &'b [u8]) -> BufferWriter<'a, 'b> {
-        self.position_index_cache_check(data_types);
-
         BufferWriter::new(self, data_types)
-    }
-
-    fn position_index_cache_check(&mut self, data_types: &[u8]) {
-        if self.field_pos_index.len() == 0 && self.buf_len > 0 {
-            let mut field_start_pos = 0;
-            for index in 0..data_types.len() {
-                if field_start_pos > self.buf_len {
-                    panic!("read error");
-                }
-
-                self.field_pos_index.push(field_start_pos);
-                let data_type = data_types[index];
-                if data_type >= types::BINARY {
-                    let (v, len_length) = read_lenenc_int(&self.buf, field_start_pos).unwrap();
-                    let len = v as usize;
-
-                    field_start_pos += (len + len_length) as usize;
-                } else {
-                    let len = types::len(data_type);
-                    field_start_pos += len as usize;
-                }
-            }
-
-            if field_start_pos > self.buf_len {
-                panic!("read error");
-            }
-        }
     }
 }
 

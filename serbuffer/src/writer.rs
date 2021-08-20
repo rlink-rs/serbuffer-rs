@@ -1,16 +1,15 @@
+use std::borrow::BorrowMut;
 use std::io::ErrorKind;
 
 use bytes::BufMut;
 
 use crate::encoding::write_lenenc_int;
 use crate::{types, Buffer};
-use std::borrow::BorrowMut;
 
 pub struct BufferWriter<'a, 'b> {
     raw_buffer: &'a mut Buffer,
     data_types: &'b [u8],
     write_field_step: usize,
-    // write_position: usize,
 }
 
 impl<'a, 'b> BufferWriter<'a, 'b> {
@@ -34,9 +33,6 @@ impl<'a, 'b> BufferWriter<'a, 'b> {
 
     #[inline]
     fn step_position(&mut self, pos_step_len: usize) {
-        self.raw_buffer
-            .field_pos_index
-            .push(self.raw_buffer.buf_len);
         self.raw_buffer.buf_len += pos_step_len;
     }
 
